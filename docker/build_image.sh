@@ -2,9 +2,9 @@
 
 set -o errexit -o nounset -o pipefail
 
-MACHINE=cpu
+MACHINE=gpu
 BRANCH_NAME="master"
-DOCKER_TAG="pytorch/torchserve:latest-cpu"
+DOCKER_TAG="juvoly-images/torchserve:latest-gpu"
 BUILD_TYPE="production"
 BASE_IMAGE="ubuntu:20.04"
 UPDATE_BASE_IMAGE=false
@@ -108,7 +108,7 @@ do
             BASE_IMAGE="nvidia/cuda:11.6.0-cudnn8-runtime-ubuntu20.04"
           elif [ "${CUDA_VERSION}" == "cu113" ];
           then
-            BASE_IMAGE="nvidia/cuda:11.3.0-cudnn8-runtime-ubuntu20.04"
+            BASE_IMAGE="nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04"
           elif [ "${CUDA_VERSION}" == "cu111" ];
           then
             BASE_IMAGE="nvidia/cuda:11.1.1-cudnn8-runtime-ubuntu20.04"
@@ -160,13 +160,13 @@ fi
 
 if [ "${BUILD_TYPE}" == "production" ]
 then
-  DOCKER_BUILDKIT=1 docker build --file Dockerfile --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg CUDA_VERSION="${CUDA_VERSION}"  --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg BUILD_NIGHTLY="${BUILD_NIGHTLY}" -t "${DOCKER_TAG}" --target production-image  .
+  DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 --file Dockerfile --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg CUDA_VERSION="${CUDA_VERSION}"  --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg BUILD_NIGHTLY="${BUILD_NIGHTLY}" -t "${DOCKER_TAG}" --target production-image  .
 elif [ "${BUILD_TYPE}" == "ci" ]
 then
-  DOCKER_BUILDKIT=1 docker build --file Dockerfile --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg CUDA_VERSION="${CUDA_VERSION}"  --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg BUILD_NIGHTLY="${BUILD_NIGHTLY}" --build-arg BRANCH_NAME="${BRANCH_NAME}"  -t "${DOCKER_TAG}" --target ci-image  .
+  DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 --file Dockerfile --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg CUDA_VERSION="${CUDA_VERSION}"  --build-arg PYTHON_VERSION="${PYTHON_VERSION}" --build-arg BUILD_NIGHTLY="${BUILD_NIGHTLY}" --build-arg BRANCH_NAME="${BRANCH_NAME}"  -t "${DOCKER_TAG}" --target ci-image  .
 elif [ "${BUILD_TYPE}" == "benchmark" ]
 then
-  DOCKER_BUILDKIT=1 docker build --pull --no-cache --file Dockerfile.benchmark --build-arg USE_LOCAL_SERVE_FOLDER=$USE_LOCAL_SERVE_FOLDER --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg BRANCH_NAME="${BRANCH_NAME}" --build-arg CUDA_VERSION="${CUDA_VERSION}" --build-arg MACHINE_TYPE="${MACHINE}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" -t "${DOCKER_TAG}" .
+  DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 --pull --no-cache --file Dockerfile.benchmark --build-arg USE_LOCAL_SERVE_FOLDER=$USE_LOCAL_SERVE_FOLDER --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg BRANCH_NAME="${BRANCH_NAME}" --build-arg CUDA_VERSION="${CUDA_VERSION}" --build-arg MACHINE_TYPE="${MACHINE}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" -t "${DOCKER_TAG}" .
 else
   DOCKER_BUILDKIT=1 docker build --pull --no-cache --file Dockerfile.dev -t "${DOCKER_TAG}" --build-arg BUILD_TYPE="${BUILD_TYPE}" --build-arg BASE_IMAGE=$BASE_IMAGE --build-arg BRANCH_NAME="${BRANCH_NAME}" --build-arg CUDA_VERSION="${CUDA_VERSION}" --build-arg MACHINE_TYPE="${MACHINE}" --build-arg BUILD_WITH_IPEX="${BUILD_WITH_IPEX}" --build-arg PYTHON_VERSION="${PYTHON_VERSION}" .
 fi
